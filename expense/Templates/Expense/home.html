@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Expense Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,480;9..144,560;9..144,640&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1F4EE;
+    --card:#FFFFFF;
+    --ink:#152420;
+    --ink-soft:#54655D;
+    --ink-faint:#8B988F;
+    --line:#DCE3D8;
+    --teal:#0F5C4D;
+    --teal-deep:#0B4038;
+    --teal-wash:#E4EEE9;
+    --amber:#B9791F;
+    --amber-wash:#F6ECD9;
+    --brick:#AE3A2C;
+    --brick-wash:#F5E4DF;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --radius-sm:9px;
+    --shadow-card:0 1px 2px rgba(21,36,32,0.04), 0 12px 28px -16px rgba(21,36,32,0.18);
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-font-smoothing:antialiased;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.5;
+  }
+  h1,h2{
+    font-family:'Fraunces',serif;
+    color:var(--ink);
+    margin:0;
+    font-weight:560;
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;}
+  a{color:inherit;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    max-width:1080px;
+    margin:0 auto;
+    padding:26px 24px 22px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{
+    font-family:'Fraunces',serif;
+    font-size:1.5rem;
+    font-weight:640;
+    letter-spacing:-0.015em;
+  }
+  .brand .rupee-mark{
+    display:inline-block;
+    width:9px;height:9px;
+    border-radius:50%;
+    background:var(--teal);
+    margin-right:10px;
+    vertical-align:middle;
+  }
+  nav{display:flex; gap:6px;}
+  .nav-link{
+    background:none;
+    border:none;
+    font-size:0.95rem;
+    font-weight:500;
+    color:var(--ink-soft);
+    padding:9px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .nav-link:hover{color:var(--ink); background:var(--teal-wash);}
+  .nav-link.active{color:var(--ink); background:var(--teal-wash); font-weight:600;}
+  .nav-link:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+
+  main{max-width:1080px; margin:0 auto; padding:36px 24px 80px;}
+  .view{display:none;}
+  .view.active{display:block; animation:fadeIn .35s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    padding:28px;
+  }
+
+  /* ---------- Balance hero ---------- */
+  .balance-card{margin-bottom:22px;}
+  .balance-label{
+    margin:0 0 10px;
+    font-size:0.95rem;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .balance-amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:clamp(2.6rem, 6vw, 3.6rem);
+    letter-spacing:-0.01em;
+    margin:0 0 22px;
+    transition:color .25s ease;
+  }
+  .balance-amount.state-ok{color:var(--teal-deep);}
+  .balance-amount.state-low{color:var(--amber);}
+  .balance-amount.state-critical{color:var(--brick);}
+
+  .meter-track{
+    position:relative;
+    height:10px;
+    border-radius:999px;
+    background:var(--line);
+    overflow:visible;
+  }
+  .meter-fill{
+    height:100%;
+    width:100%;
+    border-radius:999px;
+    background:var(--teal);
+    transition:width .5s cubic-bezier(.4,0,.2,1), background-color .5s ease;
+  }
+  .meter-fill.state-low{background:var(--amber);}
+  .meter-fill.state-critical{background:var(--brick);}
+  .meter-scale{
+    display:flex;
+    justify-content:space-between;
+    margin-top:9px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    color:var(--ink-faint);
+  }
+  .meter-status{
+    margin:16px 0 0;
+    font-size:0.9rem;
+    color:var(--ink-soft);
+  }
+  .depletion-note{
+    margin:14px 0 0;
+    padding:12px 14px;
+    border-radius:var(--radius-sm);
+    background:var(--brick-wash);
+    color:var(--brick);
+    font-size:0.88rem;
+    border:1px solid rgba(174,58,44,0.25);
+  }
+
+  /* ---------- Dashboard grid ---------- */
+  .dashboard-grid{
+    display:grid;
+    grid-template-columns:minmax(0,0.9fr) minmax(0,1.25fr);
+    gap:20px;
+  }
+  .card h2{
+    font-size:1.15rem;
+    margin-bottom:18px;
+  }
+
+  .form-card label{
+    display:block;
+    font-size:0.85rem;
+    font-weight:500;
+    color:var(--ink-soft);
+    margin:16px 0 7px;
+  }
+  .form-card label:first-of-type{margin-top:0;}
+  .form-card input{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    font-family:inherit;
+    font-size:0.98rem;
+    color:var(--ink);
+    background:var(--paper);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .form-card input:focus-visible{
+    outline:none;
+    border-color:var(--teal);
+    box-shadow:0 0 0 3px var(--teal-wash);
+  }
+  .btn-primary{
+    margin-top:22px;
+    width:100%;
+    padding:13px 18px;
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    border-radius:var(--radius-sm);
+    font-size:0.98rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .btn-primary:hover{background:var(--teal-deep);}
+  .btn-primary:active{transform:scale(0.99);}
+  .btn-primary:focus-visible{outline:2px solid var(--teal-deep); outline-offset:2px;}
+  .form-hint{
+    margin:12px 0 0;
+    font-size:0.85rem;
+    color:var(--brick);
+  }
+
+  .recent-list{list-style:none; margin:0; padding:0;}
+  .recent-list li{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    padding:13px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .recent-list li:last-child{border-bottom:none;}
+  .recent-main{display:flex; flex-direction:column; gap:3px; min-width:0;}
+  .recent-desc{font-size:0.96rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .recent-date{font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:var(--ink-faint);}
+  .recent-amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:0.98rem;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+  .empty-state{
+    color:var(--ink-faint);
+    font-size:0.92rem;
+    padding:8px 0;
+  }
+
+  /* ---------- History page ---------- */
+  .history-head{margin-bottom:20px;}
+  .history-head h1{font-size:1.8rem; margin-bottom:8px;}
+  .history-head p{color:var(--ink-soft); margin:0; font-size:0.96rem;}
+  .table-wrap{padding:0; overflow:hidden;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-size:0.78rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    background:var(--paper);
+  }
+  thead th.num, td.num{text-align:right;}
+  tbody td{
+    padding:15px 20px;
+    border-bottom:1px solid var(--line);
+    font-size:0.94rem;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  td.mono, thead th.num{font-family:'IBM Plex Mono',monospace;}
+  td.date{font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); white-space:nowrap;}
+  td.amount{font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
+  td.balance{font-family:'IBM Plex Mono',monospace; font-weight:600; white-space:nowrap;}
+  #historyEmpty{padding:24px 20px;}
+
+  footer{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 24px 40px;
+    color:var(--ink-faint);
+    font-size:0.82rem;
+  }
+
+  @media (max-width:760px){
+    .dashboard-grid{grid-template-columns:1fr;}
+    .topbar{padding:20px 18px;}
+    main{padding:28px 18px 60px;}
+    nav{gap:2px;}
+    .nav-link{padding:8px 12px; font-size:0.88rem;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .view.active{animation:none;}
+    .meter-fill{transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="rupee-mark"></span>Expense Tracker</div>
+  <nav>
+    <button class="nav-link active" data-view="home">Home</button>
+    <button class="nav-link" data-view="history">Expense History</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- HOME VIEW -->
+  <section id="view-home" class="view active">
+
+    <section class="card balance-card">
+     <div style="display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+
+    <div>
+        <p class="balance-label">Salary Credited</p>
+        <p class="balance-amount mono state-ok">
+            {% if salary %}
+                ₹{{ salary.amount }}
+            {% else %}
+                ₹0
+            {% endif %}
+        </p>
+    </div>
+
+    <div>
+        <p class="balance-label">Remaining Balance</p>
+        <p class="balance-amount mono state-ok" id="balanceAmount">
+            ₹{{ balance }}
+        </p>
+    </div>
+
+</div>
+
+      <div class="meter-track">
+        <div class="meter-fill state-ok" id="meterFill"></div>
+      </div>
+      <div class="meter-scale">
+        <span>₹0</span>
+        <span id="meterTotalLabel">
+    {% if salary %}
+        ₹{{ salary.amount }}
+    {% else %}
+        ₹0
+    {% endif %}
+</span>
+      </div>
+      <p class="meter-status" id="meterStatus">Balance is healthy — no expenses logged yet this cycle.</p>
+      <p class="depletion-note" id="depletionNote" hidden>
+        Balance has reached ₹0. When this happens on the live site, a notification email is sent to piyush.geetesh2000@gmail.com.
+      </p>
+    </section>
+
+    <div class="dashboard-grid">
+
+      <section class="card form-card">
+        <h2>Add an expense</h2>
+        <form method="POST">
+        {% csrf_token %}
+          <label for="expenseAmount">Expense Amount</label>
+          <input
+            type="number"
+            id="expenseAmount"
+            name="amount"
+            inputmode="decimal"
+            min="1"
+            step="0.01"
+            placeholder="e.g. 250"
+            required
+            />
+
+          <label for="expenseDescription">Description</label>
+          <input
+            type="text"
+            id="expenseDescription"
+            name="description"
+            placeholder="e.g. Lunch with team"
+            required
+            maxlength="60"
+            />
+
+          <button type="submit" class="btn-primary">Add Expense</button>
+          <p class="form-hint" id="formHint" hidden></p>
+        </form>
+      </section>
+
+      <section class="card recent-card">
+        <h2>Recent Expenses</h2>
+        <ul class="recent-list">
+
+        {% for expense in expenses|slice:":5" %}
+
+            <li>
+                <div class="recent-main">
+                    <span class="recent-desc">
+                        {{ expense.description }}
+                    </span>
+
+                    <span class="recent-date">
+                        {{ expense.created_at|date:"d M" }}
+                    </span>
+                </div>
+
+                <span class="recent-amount">
+                    ₹{{ expense.amount }}
+                </span>
+            </li>
+
+            {% empty %}
+
+            <p class="empty-state">
+            No expenses logged yet — add one to see it here.
+            </p>
+
+            {% endfor %}
+
+        </ul>
+      </section>
+
+    </div>
+  </section>
+
+  <!-- HISTORY VIEW -->
+  <section id="view-history" class="view">
+    <div class="history-head">
+      <h1>Expense History</h1>
+      <p>Every expense you've logged this session, with the running balance after each entry.</p>
+    </div>
+    <div class="table-wrap card">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th class="num">Expense Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+
+    {% for expense in expenses %}
+
+        <tr>
+            <td class="date">
+                {{ expense.created_at|date:"d M Y" }}
+            </td>
+
+            <td>
+                {{ expense.description }}
+            </td>
+
+            <td class="amount num">
+                ₹{{ expense.amount }}
+            </td>
+        </tr>
+
+    {% empty %}
+
+        <tr>
+            <td colspan="3">
+                No expenses logged yet.
+            </td>
+        </tr>
+
+    {% endfor %}
+
+</tbody>
+      </table>
+      <p class="empty-state" id="historyEmpty" hidden>No expenses logged yet.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Front-end demo only — figures live in this page's memory and reset on reload. The Django backend will persist every expense, compute balances, and send the ₹0 email notification.
+</footer>
+
+<script>
+  
+  const TOTAL_SALARY = Number("{{ salary.amount|default:0 }}");
+let balance = Number("{{ balance|default:0 }}");
+
+  // Seed data mirrors the brief's example rows.
+ 
+
+  const balanceAmountEl = document.getElementById('balanceAmount');
+  const meterFillEl = document.getElementById('meterFill');
+  const meterStatusEl = document.getElementById('meterStatus');
+  const meterTotalLabelEl = document.getElementById('meterTotalLabel');
+  const depletionNoteEl = document.getElementById('depletionNote');
+  const recentListEl = document.getElementById('recentList');
+  const recentEmptyEl = document.getElementById('recentEmpty');
+  const historyBodyEl = document.getElementById('historyBody');
+  const historyEmptyEl = document.getElementById('historyEmpty');
+  const formHintEl = document.getElementById('formHint');
+
+  function formatCurrency(n) {
+    return '₹' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  function currentState(bal) {
+    const pct = bal / TOTAL_SALARY;
+    if (bal <= 0) return 'critical';
+    if (pct <= 0.15) return 'critical';
+    if (pct <= 0.4) return 'low';
+    return 'ok';
+  }
+
+  function statusMessage(state, bal) {
+    if (bal <= 0) return 'Balance reached ₹0 for this cycle.';
+    if (state === 'critical') return 'Balance is critically low — spend with care.';
+    if (state === 'low') return 'Balance is getting low.';
+    return 'Balance is healthy.';
+  }
+
+  function render() {
+    meterTotalLabelEl.textContent = formatCurrency(TOTAL_SALARY);
+    balanceAmountEl.textContent = formatCurrency(Math.max(balance, 0));
+
+    const state = currentState(balance);
+    balanceAmountEl.classList.remove('state-ok', 'state-low', 'state-critical');
+    meterFillEl.classList.remove('state-ok', 'state-low', 'state-critical');
+    balanceAmountEl.classList.add('state-' + state);
+    meterFillEl.classList.add('state-' + state);
+
+    const pct = Math.max(Math.min(balance / TOTAL_SALARY, 1), 0) * 100;
+    meterFillEl.style.width = pct + '%';
+    meterStatusEl.textContent = statusMessage(state, balance);
+    depletionNoteEl.hidden = balance > 0;
+  }
+  
+
+  
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function todayLabel() {
+    const d = new Date();
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  }
+
+  // Nav switching between Home and Expense History
+  document.querySelectorAll('.nav-link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.dataset.view;
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + target).classList.add('active');
+    });
+  });
+
+  render();
+</script>
+
+</body>
+</html>
