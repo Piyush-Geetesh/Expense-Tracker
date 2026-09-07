@@ -56,3 +56,9 @@ def home(request):
             'balance': balance,
         }
     )
+def delete_expense(request, expense_id):
+    if request.method == 'POST':
+        expense = Expense.objects.get(id=expense_id)
+        expense.delete()
+
+    return redirect('home')

@@ -237,6 +237,20 @@
     color:var(--ink);
     white-space:nowrap;
   }
+  .expense-actions{display:flex; align-items:center; gap:12px; flex-shrink:0;}
+  .delete-form{margin:0;}
+  .btn-delete{
+    padding:8px 12px;
+    border:1px solid var(--brick);
+    border-radius:var(--radius-sm);
+    background:var(--brick-wash);
+    color:var(--brick);
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn-delete:hover{background:var(--brick); color:#fff;}
+  .btn-delete:focus-visible{outline:2px solid var(--brick); outline-offset:2px;}
   .empty-state{
     color:var(--ink-faint);
     font-size:0.92rem;
@@ -247,7 +261,7 @@
   .history-head{margin-bottom:20px;}
   .history-head h1{font-size:1.8rem; margin-bottom:8px;}
   .history-head p{color:var(--ink-soft); margin:0; font-size:0.96rem;}
-  .table-wrap{padding:0; overflow:hidden;}
+  .table-wrap{padding:0; overflow-x:auto;}
   table{width:100%; border-collapse:collapse;}
   thead th{
     text-align:left;
@@ -428,9 +442,15 @@
                     </span>
                 </div>
 
+                <div class="expense-actions">
                 <span class="recent-amount">
                     ₹{{ expense.amount }}
                 </span>
+                    <form method="POST" action="{% url 'delete_expense' expense.id %}" class="delete-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-delete" aria-label="Delete expense: {{ expense.description }}">Delete</button>
+                    </form>
+                </div>
             </li>
 
             {% empty %}
@@ -459,7 +479,7 @@
           <tr>
             <th>Date</th>
             <th>Description</th>
-            <th class="num">Expense Amount</th>
+            <th class="num">Expense Amount</th><th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -478,12 +498,18 @@
             <td class="amount num">
                 ₹{{ expense.amount }}
             </td>
+            <td>
+                <form method="POST" action="{% url 'delete_expense' expense.id %}" class="delete-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete" aria-label="Delete expense: {{ expense.description }}">Delete</button>
+                </form>
+            </td>
         </tr>
 
     {% empty %}
 
         <tr>
-            <td colspan="3">
+            <td colspan="4">
                 No expenses logged yet.
             </td>
         </tr>
