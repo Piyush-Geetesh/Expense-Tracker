@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: expense-tracker-api
+    runtime: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: bash start.sh
+    healthCheckPath: /health/
+    autoDeployTrigger: "off"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.13
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_READ_DOTENV
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        value: https://expense-tracker-lemon-omega-49.vercel.app
+      - key: DJANGO_TRUST_PROXY
+        value: "True"
+      - key: RUN_MIGRATIONS
+        value: "False"
+      - key: WEB_CONCURRENCY
+        value: "2"

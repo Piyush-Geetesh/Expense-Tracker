@@ -16,3 +16,9 @@ frontend/.env.production
 frontend/test-results/
 frontend/playwright-report/
 frontend/*.tsbuildinfo
+
+# Keep actual environment files private; examples may be committed.
+.env.*
+!.env.example
+!.env.*.example
+.vercel/

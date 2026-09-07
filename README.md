@@ -7,7 +7,7 @@ Django 5.2 + Django REST Framework own authentication, ownership, money validati
 Use Python 3.10+ and Node.js 20.9+ (Node 24 was used for validation). The older Node 14 installation on this machine cannot run this frontend.
 
 1. Install the backend dependencies: `python -m pip install -r requirements.txt`.
-2. Set environment variables using [.env.example](.env.example) as a reference. These files are examples; Django does not automatically load .env files.
+2. Set environment variables using [.env.example](.env.example) as a reference. Django now loads the root .env file for local use; existing environment variables take precedence. Render uses its dashboard environment variables.
 3. **Before migrating any database containing real data, follow [docs/MIGRATION.md](docs/MIGRATION.md).** On a new, empty development database, run `python manage.py migrate`.
 4. Start Django: `python manage.py runserver 127.0.0.1:8000`.
 5. In `frontend/`, install dependencies with `pnpm install --frozen-lockfile`. Set `DJANGO_API_ORIGIN=http://127.0.0.1:8000` if needed (this is the default).
@@ -73,6 +73,10 @@ All financial endpoints require a Django session and filter records by the authe
 | DELETE | /api/cycles/{id}/expenses/ | Delete this cycle's expenses, retain cycle |
 
 List pages contain count, next, previous, and results; request `?page=2` to advance. Errors return JSON with detail or field messages. Validation is 400, missing/foreign records 404, unauthenticated/CSRF failures 403, and temporary database failures 503. The browser displays failures and does not automatically retry financial writes.
+
+## Render backend + Vercel frontend
+
+Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the exact Render, Neon, and Vercel settings. The Render blueprint uses your existing Neon database and does not create a replacement database.
 
 ## Production configuration
 

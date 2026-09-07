@@ -12,9 +12,19 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+IS_RENDER = os.environ.get("RENDER", "").lower() == "true"
+if os.environ.get("DJANGO_READ_DOTENV", "False" if IS_RENDER else "True").lower() == "true":
+    load_dotenv(BASE_DIR / ".env", override=False)
+
+
+def env_list(name, default=""):
+    return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
 
 
 # Quick-start development settings - unsuitable for production
@@ -27,7 +37,7 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+DEBUG = os.environ.get("DEBUG", "False" if IS_RENDER else "True").lower() == "true"
 
 
 
@@ -46,6 +56,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -79,10 +90,20 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=60,
+        conn_health_checks=True,
+        ssl_require=not DEBUG,
     )
 }
 
+
+# Production must use persistent PostgreSQL (the existing Neon database).
+if IS_RENDER or not DEBUG:
+    if not os.environ.get("DATABASE_URL"):
+        raise ImproperlyConfigured("Set DATABASE_URL to the existing Neon PostgreSQL connection string.")
+    if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+        raise ImproperlyConfigured("Production requires PostgreSQL; SQLite is for local development only.")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -118,7 +139,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
@@ -127,12 +152,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Browser requests reach Django through the same public origin as Next.js.
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-CSRF_TRUSTED_ORIGINS = [
-    origin for origin in os.environ.get(
-        "DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
-    ).split(",") if origin
-]
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost" if DEBUG else "")
+render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
+CSRF_TRUSTED_ORIGINS = env_list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000" if DEBUG else "",
+)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
@@ -140,8 +167,10 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 if not DEBUG:
-    if SECRET_KEY == "django-insecure-local-development-key":
-        raise ValueError("Set DJANGO_SECRET_KEY in production.")
+    if len(SECRET_KEY) < 32 or SECRET_KEY.startswith(("django-insecure-", "REPLACE_")):
+        raise ImproperlyConfigured("Set a strong DJANGO_SECRET_KEY of at least 32 characters in production.")
+    if not ALLOWED_HOSTS or not CSRF_TRUSTED_ORIGINS:
+        raise ImproperlyConfigured("Set production hostnames and DJANGO_CSRF_TRUSTED_ORIGINS.")
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
 # Enable only behind a trusted proxy that strips client-supplied forwarded headers.
