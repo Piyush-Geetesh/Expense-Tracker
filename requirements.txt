@@ -1,3 +1,4 @@
 Django==5.2.17
 dj-database-url==3.1.2
 psycopg2-binary==2.9.12
+djangorestframework==3.18.0
